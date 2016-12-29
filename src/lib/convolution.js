@@ -17,7 +17,24 @@
  */
 /* @flow */
 'use strict'
-export function downsampling_convolution_periodization(input: array, N: umber, filter: array, F: number, output: array, step: number, fstep: number) {
+/* This file contains several functions for computing the convolution of a
+ * signal with a filter. The general scheme is:
+ *   output[o] = sum(filter[j] * input[i-j] for j = [0..F) and i = [0..N))
+ * where 'o', 'i' and 'j' may progress at different rates.
+ *
+ * Most of the code deals with different edge extension modes. Values are
+ * computed on-demand, in four steps:
+ * 1. Filter extends past signal on the left.
+ * 2. Filter completely contained within signal (no extension).
+ * 3. Filter extends past signal on both sides (only if F > N).
+ * 4. Filter extends past signal on the right.
+ *
+ * MODE_PERIODIZATION produces different output lengths to other modes, so is
+ * implemented as a separate function for each case.
+ *
+ * See 'common.h' for descriptions of the extension modes.
+ */
+export function downsampling_convolution_periodization(input: array, N: number, filter: array, F: number, output: array, step: number, fstep: number) {
     var i = F / 2, o = 0;
     var padding = (step - (N % step)) % step;
     for (; i < F && i < N; i += step, ++o) {
@@ -93,7 +110,7 @@ export function downsampling_convolution_periodization(input: array, N: umber, f
 }
 
 
-export function downsampling_convolution(input: array, N: number, filter: array, F: number, output: array, mode: string) {
+export function downsampling_convolution(input: array, N: number, filter: array, F: number, output: array, step: number, mode: string) {
     var i = step - 1, o = 0;
 
     if (mode == 'MODE_PERIODIZATION') {
@@ -263,7 +280,7 @@ export function downsampling_convolution(input: array, N: number, filter: array,
         var sum = 0;
         var j = 0;
         switch (mode) {
-            case MODE_SYMMETRIC:
+            case 'MODE_SYMMETRIC':
                 // Included from original: TODO: j < F-_offset
                 while (i - j >= N) {
                     var k;
@@ -273,7 +290,7 @@ export function downsampling_convolution(input: array, N: number, filter: array,
                         sum += filter[i - N - j] * input[k];
                 }
                 break;
-            case MODE_REFLECT:
+            case 'MODE_REFLECT':
                 while (i - j >= N) {
                     var k;
                     for (var k = 1; k < N && i - j >= N; ++j, ++k)
@@ -311,7 +328,7 @@ export function downsampling_convolution(input: array, N: number, filter: array,
     return 0;
 }
 
-export function upsampling_convolution_full(input, N, filter, F, output,) {
+export function upsampling_convolution_full(input: array, N: number, filter: array, F: number, output: array) {
     /* Performs a zero-padded convolution, using each input element for two
      * consecutive filter elements. This simulates an upsampled input.
      *
@@ -319,7 +336,6 @@ export function upsampling_convolution_full(input, N, filter, F, output,) {
      * allows multiple runs with different inputs and the same output to be used
      * for idwt.
      */
-
     // If check omitted, this export function would be a no-op for F<2
     var i = 0, o = 0;
 
@@ -331,32 +347,30 @@ export function upsampling_convolution_full(input, N, filter, F, output,) {
     for (; i < N && i < F / 2; ++i, o += 2) {
 
         for (var j = 0; j <= i; ++j) {
-            output[o] += filter[j * 2] * input[i - j];
-            output[o + 1] += filter[j * 2 + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
-
     for (; i < N; ++i, o += 2) {
 
         for (var j = 0; j < F / 2; ++j) {
-            output[o] += filter[j * 2] * input[i - j];
-            output[o + 1] += filter[j * 2 + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
 
     for (; i < F / 2; ++i, o += 2) {
 
         for (var j = i - (N - 1); j <= i; ++j) {
-            output[o] += filter[j * 2] * input[i - j];
-            output[o + 1] += filter[j * 2 + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
 
     for (; i < N + F / 2; ++i, o += 2) {
-
         for (var j = i - (N - 1); j < F / 2; ++j) {
-            output[o] += filter[j * 2] * input[i - j];
-            output[o + 1] += filter[j * 2 + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
     return 0;
@@ -403,14 +417,14 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
     for (; i < F / 2 && i < N; ++i, o += 2) {
         var j = 0;
         for (; j <= i; ++j) {
-            output[o] += filter[2 * j] * input[i - j];
-            output[o + 1] += filter[2 * j + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
         while (j < F / 2) {
             var k;
             for (var k = 0; k < N && j < F / 2; ++k, ++j) {
-                output[o] += filter[2 * j] * input[N - 1 - k];
-                output[o + 1] += filter[2 * j + 1] * input[N - 1 - k];
+                output[o] = (output[o] || 0) + filter[2 * j] * input[N - 1 - k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[N - 1 - k];
             }
         }
     }
@@ -418,8 +432,8 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
     for (; i < N; ++i, o += 2) {
 
         for (var j = 0; j < F / 2; ++j) {
-            output[o] += filter[2 * j] * input[i - j];
-            output[o + 1] += filter[2 * j + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
     }
 
@@ -428,19 +442,19 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
         while (i - j >= N) {
             var k;
             for (var k = 0; k < N && i - j >= N; ++k, ++j) {
-                output[o] += filter[2 * (i - N - j)] * input[k];
-                output[o + 1] += filter[2 * (i - N - j) + 1] * input[k];
+                output[o] = (output[o] || 0) + filter[2 * (i - N - j)] * input[k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - N - j) + 1] * input[k];
             }
         }
         for (; j <= i && j < F / 2; ++j) {
-            output[o] += filter[2 * j] * input[i - j];
-            output[o + 1] += filter[2 * j + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
         while (j < F / 2) {
             var k;
             for (var k = 0; k < N && j < F / 2; ++k, ++j) {
-                output[o] += filter[2 * j] * input[N - 1 - k];
-                output[o + 1] += filter[2 * j + 1] * input[N - 1 - k];
+                output[o] = (output[o] || 0) + filter[2 * j] * input[N - 1 - k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[N - 1 - k];
             }
         }
     }
@@ -450,13 +464,13 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
         while (i - j >= N) {
             var k;
             for (var k = 0; k < N && i - j >= N; ++k, ++j) {
-                output[o] += filter[2 * (i - N - j)] * input[k];
-                output[o + 1] += filter[2 * (i - N - j) + 1] * input[k];
+                output[o] = (output[o] || 0) + filter[2 * (i - N - j)] * input[k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - N - j) + 1] * input[k];
             }
         }
         for (; j <= i && j < F / 2; ++j) {
-            output[o] += filter[2 * j] * input[i - j];
-            output[o + 1] += filter[2 * j + 1] * input[i - j];
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
     }
 
@@ -490,8 +504,8 @@ export function upsampling_convolution_valid_sf(input, /*const var */ N, filter,
                 sum_even += filter[j * 2] * input[i - j];
                 sum_odd += filter[j * 2 + 1] * input[i - j];
             }
-            output[o] += sum_even;
-            output[o + 1] += sum_odd;
+            output[o] = (output[o] || 0) + sum_even;
+            output[o + 1] = (output[o + 1] || 0) + sum_odd;
         }
     }
     return 0;
