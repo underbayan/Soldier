@@ -34,9 +34,10 @@
  *
  * See 'common.h' for descriptions of the extension modes.
  */
-export function downsampling_convolution_periodization(input: array, N: number, filter: array, F: number, output: array, step: number, fstep: number) {
+export function downsampling_convolution_periodization(input: array, N: number, filter: array, F: number, step: number, fstep: number, output: array) {
     var i = F / 2, o = 0;
     var padding = (step - (N % step)) % step;
+    output = !!output ? output : []
     for (; i < F && i < N; i += step, ++o) {
         var sum = 0;
         var k_start = 0;
@@ -106,13 +107,13 @@ export function downsampling_convolution_periodization(input: array, N: number, 
             sum += filter[j] * input[i - j];
         output[o] = sum;
     }
-    return 0;
+    return output;
 }
 
 
 export function downsampling_convolution(input: array, N: number, filter: array, F: number, output: array, step: number, mode: string) {
     var i = step - 1, o = 0;
-
+    output = !!output ? output : []
     if (mode == 'MODE_PERIODIZATION') {
         downsampling_convolution_periodization(input, N, filter, F, output, step, 1);
     }
@@ -325,7 +326,7 @@ export function downsampling_convolution(input: array, N: number, filter: array,
             sum += filter[j] * input[i - j];
         output[o] = sum;
     }
-    return 0;
+    return output;
 }
 
 export function upsampling_convolution_full(input: array, N: number, filter: array, F: number, output: array) {
@@ -338,6 +339,7 @@ export function upsampling_convolution_full(input: array, N: number, filter: arr
      */
     // If check omitted, this export function would be a no-op for F<2
     var i = 0, o = 0;
+    output = !!output ? output : []
 
     if (F < 2)
         return -1;
@@ -373,7 +375,7 @@ export function upsampling_convolution_full(input: array, N: number, filter: arr
             output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
-    return 0;
+    return output;
 }
 
 
@@ -384,6 +386,8 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
     var i = start;
     var end = N + start - (((F / 2) % 2) ? 0 : 1);
     var o = 0;
+    output = !!output ? output : []
+
     if (F % 2) return -3;
     /* Filter must have even-length. */
 
@@ -474,7 +478,7 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
         }
     }
 
-    return 0;
+    return output;
 }
 
 
@@ -486,11 +490,11 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
  * case to separate export function this looks much clearer now.
  */
 
-export function upsampling_convolution_valid_sf(input, /*const var */ N, filter, F, output, mode) {
+export function upsampling_convolution_valid_sf(input: array, N: number, filter: array, F: number, output: array, mode: string) {
     // TODO: Allow non-2 step?
-
+    output = !!output ? output : []
     if (mode == 'MODE_PERIODIZATION')
-        _upsampling_convolution_valid_sf_periodization(input, N, filter, F, output, O);
+        upsampling_convolution_valid_sf_periodization(input, N, filter, F, output, O);
     if ((F % 2) || (N < F / 2))
         return -1;
     // Perform only stage 2 - all elements in the filter overlap an input element.
@@ -508,7 +512,7 @@ export function upsampling_convolution_valid_sf(input, /*const var */ N, filter,
             output[o + 1] = (output[o + 1] || 0) + sum_odd;
         }
     }
-    return 0;
+    return output;
 }
 
 export function upsampled_filter_convolution(input, N, filter, F, output, step, mode) {

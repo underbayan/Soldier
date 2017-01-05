@@ -28,4 +28,7 @@ Img.prototype.getCopy=function(output){
 Img.prototype.dataType = Float64Array
 // getChannels?
 
-function ImgSub(){}
+Img.prototype.at=function(x,y,c){
+    return this.getI0()[c]+x*this.getDx()+this.getDy()
+}
+Img.prototype.getI0
