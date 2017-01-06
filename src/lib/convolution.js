@@ -1,39 +1,5 @@
-/* This file contains several export functions for computing the convolution of a
- * signal with a filter. The general scheme is:
- *   output[o] = sum(filter[j] * input[i-j] for j = [0..F) and i = [0..N))
- * where 'o', 'i' and 'j' may progress at different rates.
- *
- * Most of the code deals with different edge extension modes. Values are
- * computed on-demand, in four steps:
- * 1. Filter extends past signal on the left.
- * 2. Filter completely contained within signal (no extension).
- * 3. Filter extends past signal on both sides (only if F > N).
- * 4. Filter extends past signal on the right.
- *
- * MODE_PERIODIZATION produces different output lengths to other modes, so is
- * implemented as a separate export function for each case.
- *
- * See 'common.h' for descriptions of the extension modes.
- */
 /* @flow */
 'use strict'
-/* This file contains several functions for computing the convolution of a
- * signal with a filter. The general scheme is:
- *   output[o] = sum(filter[j] * input[i-j] for j = [0..F) and i = [0..N))
- * where 'o', 'i' and 'j' may progress at different rates.
- *
- * Most of the code deals with different edge extension modes. Values are
- * computed on-demand, in four steps:
- * 1. Filter extends past signal on the left.
- * 2. Filter completely contained within signal (no extension).
- * 3. Filter extends past signal on both sides (only if F > N).
- * 4. Filter extends past signal on the right.
- *
- * MODE_PERIODIZATION produces different output lengths to other modes, so is
- * implemented as a separate function for each case.
- *
- * See 'common.h' for descriptions of the extension modes.
- */
 export function downsampling_convolution_periodization(input: array, N: number, filter: array, F: number, step: number, fstep: number, output: array) {
     var i = F / 2, o = 0;
     var padding = (step - (N % step)) % step;
@@ -111,7 +77,7 @@ export function downsampling_convolution_periodization(input: array, N: number, 
 }
 
 
-export function downsampling_convolution(input: array, N: number, filter: array, F: number, output: array, step: number, mode: string) {
+export function downsampling_convolution(input: array, N: number, filter: array, F: number, step: number, mode: string, output: array) {
     var i = step - 1, o = 0;
     output = !!output ? output : []
     if (mode == 'MODE_PERIODIZATION') {
@@ -490,7 +456,7 @@ export function upsampling_convolution_valid_sf_periodization(input: array, N: n
  * case to separate export function this looks much clearer now.
  */
 
-export function upsampling_convolution_valid_sf(input: array, N: number, filter: array, F: number, output: array, mode: string) {
+export function upsampling_convolution_valid_sf(input: array, N: number, filter: array, F: number, mode: string, output: array) {
     // TODO: Allow non-2 step?
     output = !!output ? output : []
     if (mode == 'MODE_PERIODIZATION')

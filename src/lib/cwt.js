@@ -1,5 +1,8 @@
-var gaus = function (input: array, output: array, length: number, N:number) {
+/* @flow */
+'use strict'
+var gaus = function (input: array, length: number, N: number, output: array) {
     var i = 0;
+    output = !!output ? output : [];
     for (i = 0; i < length; i++) {
         switch (N) {
             case 1:
@@ -28,24 +31,34 @@ var gaus = function (input: array, output: array, length: number, N:number) {
                 break;
         }
     }
+    return output;
 }
 
 
-var mexh = function (input: array, output: array, length: number) {
+var mexh = function (input: array, length: number, output: array) {
     var i = 0;
+    output = !!output ? output : [];
+
     for (i = 0; i < length; i++) {
         output[i] = (1 - Math.pow(input[i], 2.0)) * Math.exp(-Math.pow(input[i], 2.0) / 2) * 2 / (Math.sqrt(3) * Math.sqrt(Math.sqrt(Math.PI)));
     }
+    return output;
 }
 
-var morl = function (input: array, output: array, length: number) {
+var morl = function (input: array, length: number, output: array) {
     var i = 0;
+    output = !!output ? output : [];
+
     for (i = 0; i < length; i++) {
         output[i] = Math.cos(5 * input[i]) * Math.exp(-Math.pow(input[i], 2.0) / 2);
     }
+    return output;
 }
-var cgau = function (input: array, output_r: array, output_i: array, length: number, N: number) {
+var cgau = function (input: array, length: number, N: number, output_r: array, output_i: array) {
     var i = 0;
+    output_r = !!output_r ? output_r : [];
+    output_i = !!output_i ? output_i : [];
+
     for (i = 0; i < length; i++) {
         switch (N) {
             case 1:
@@ -88,11 +101,16 @@ var cgau = function (input: array, output_r: array, output_i: array, length: num
                 break;
         }
     }
+    return {output_r, output_i}
+
 }
 
 
-var shan = function (input: array, output_r: array, output_i: array, length: number, FB: number, FC: number) {
+var shan = function (input: array, length: number, FB: number, FC: number, output_r: array, output_i: array) {
     var i = 0;
+    output_r = !!output_r ? output_r : [];
+    output_i = !!output_i ? output_i : [];
+
     for (i = 0; i < length; i++) {
         output_r[i] = Math.cos(2 * Math.PI * FC * input[i]) * Math.sqrt(FB);
         output_i[i] = Math.sin(2 * Math.PI * FC * input[i]) * Math.sqrt(FB);
@@ -101,10 +119,16 @@ var shan = function (input: array, output_r: array, output_i: array, length: num
             output_i[i] *= Math.sin(input[i] * FB * Math.PI) / (input[i] * FB * Math.PI);
         }
     }
+    return {output_r, output_i}
+
 }
 
-var fbsp = function (input: array, output_r: array, output_i: array, length: number, M: number, FB: number, FC: number) {
+var fbsp = function (input: array, length: number, M: number, FB: number, FC: number, output_r: array, output_i: array) {
     var i = 0;
+
+    output_r = !!output_r ? output_r : [];
+    output_i = !!output_i ? output_i : [];
+
     for (i = 0; i < length; i++) {
         if (input[i] != 0) {
             output_r[i] = Math.cos(2 * Math.PI * FC * input[i]) * Math.sqrt(FB) * Math.pow(Math.sin(Math.PI * input[i] * FB / M) / (Math.PI * input[i] * FB / M), M);
@@ -115,15 +139,19 @@ var fbsp = function (input: array, output_r: array, output_i: array, length: num
             output_i[i] = Math.sin(2 * Math.PI * FC * input[i]) * Math.sqrt(FB);
         }
     }
+    return {output_r, output_i}
 }
 
 
-var cmor = function (input: array, output_r: array, output_i: array, length: number, FB: number, FC: number) {
+var cmor = function (input: array, length: number, FB: number, FC: number, output_r: array, output_i: array) {
     var i = 0;
+    output_r = !!output_r ? output_r : [];
+    output_i = !!output_i ? output_i : [];
     for (i = 0; i < length; i++) {
         output_r[i] = Math.cos(2 * Math.PI * FC * input[i]) * Math.exp(-Math.pow(input[i], 2.0) / FB) / Math.sqrt(Math.PI * FB);
         output_i[i] = Math.sin(2 * Math.PI * FC * input[i]) * Math.exp(-Math.pow(input[i], 2.0) / FB) / Math.sqrt(Math.PI * FB);
-
     }
+    return {output_r, output_i}
+
 }
-export {fbsp, cmor, shan, cgau, morl, mexh, gaus}
+export  {gaus, fbsp, cmor, shan, cgau, morl, mexh}
