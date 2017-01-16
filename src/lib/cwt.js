@@ -1,6 +1,6 @@
 /* @flow */
 'use strict'
-var gaus = function (input: array, length: number, N: number, output: array) {
+var gaus = function (input: Array<number>, length: number, N: number, output: Array<number>) {
     var i = 0;
     output = !!output ? output : [];
     for (i = 0; i < length; i++) {
@@ -35,7 +35,7 @@ var gaus = function (input: array, length: number, N: number, output: array) {
 }
 
 
-var mexh = function (input: array, length: number, output: array) {
+var mexh = function (input: Array<number>, length: number, output: Array<number>) {
     var i = 0;
     output = !!output ? output : [];
 
@@ -45,7 +45,7 @@ var mexh = function (input: array, length: number, output: array) {
     return output;
 }
 
-var morl = function (input: array, length: number, output: array) {
+var morl = function (input: Array<number>, length: number, output: Array<number>) {
     var i = 0;
     output = !!output ? output : [];
 
@@ -54,7 +54,7 @@ var morl = function (input: array, length: number, output: array) {
     }
     return output;
 }
-var cgau = function (input: array, length: number, N: number, output_r: array, output_i: array) {
+var cgau = function (input: Array<number>, length: number, N: number, output_r: Array<number>, output_i: Array<number>) {
     var i = 0;
     output_r = !!output_r ? output_r : [];
     output_i = !!output_i ? output_i : [];
@@ -106,7 +106,7 @@ var cgau = function (input: array, length: number, N: number, output_r: array, o
 }
 
 
-var shan = function (input: array, length: number, FB: number, FC: number, output_r: array, output_i: array) {
+var shan = function (input: Array<number>, length: number, FB: number, FC: number, output_r: Array<number>, output_i: Array<number>) {
     var i = 0;
     output_r = !!output_r ? output_r : [];
     output_i = !!output_i ? output_i : [];
@@ -123,7 +123,7 @@ var shan = function (input: array, length: number, FB: number, FC: number, outpu
 
 }
 
-var fbsp = function (input: array, length: number, M: number, FB: number, FC: number, output_r: array, output_i: array) {
+var fbsp = function (input: Array<number>, length: number, M: number, FB: number, FC: number, output_r: Array<number>, output_i: Array<number>) {
     var i = 0;
 
     output_r = !!output_r ? output_r : [];
@@ -143,7 +143,7 @@ var fbsp = function (input: array, length: number, M: number, FB: number, FC: nu
 }
 
 
-var cmor = function (input: array, length: number, FB: number, FC: number, output_r: array, output_i: array) {
+var cmor = function (input: Array<number>, length: number, FB: number, FC: number, output_r: Array<number>, output_i: Array<number>) {
     var i = 0;
     output_r = !!output_r ? output_r : [];
     output_i = !!output_i ? output_i : [];
