@@ -97,7 +97,7 @@ export function swt_max_level(inputLength: number) {
     while (inputLength > 0) {
         if (inputLength % 2)
             return j
-        inputLength /= 2
+        Math.floor(inputLength /= 2)
         j++
     }
     return j
@@ -108,9 +108,9 @@ export function dwt_buffer_length(inputLength: number, filterLength: number, mod
         return 0
     switch (mode) {
         case 'MODE_PERIODIZATION':
-            return inputLength / 2 + ((inputLength % 2) ? 1 : 0)
+            return Math.floor(inputLength / 2 + ((inputLength % 2) ? 1 : 0))
         default:
-            return (inputLength + filterLength - 1) / 2
+            return Math.floor((inputLength + filterLength - 1) / 2)
     }
 }
 export function reconstruction_buffer_length(coeffs_len: number, filterLength: number) {
@@ -121,7 +121,7 @@ export function reconstruction_buffer_length(coeffs_len: number, filterLength: n
 export function dwt_max_level(inputLength: number, filterLength: number) {
     if (filterLength <= 1 || inputLength < (filterLength - 1))
         return 0
-    return Math.log2(inputLength / (filterLength - 1))
+    return Math.floor(Math.log2(inputLength / (filterLength - 1)))
 }
 export function swt_buffer_length(inputLength) {
     return inputLength

@@ -17,7 +17,6 @@ describe('Matrix2 ', function () {
         expect(tm3.shapes[0]).toBe(6);
         expect(tm3.shapes[1]).toBe(2);
         expect(tm3.at(0, 0)).toBeCloseTo(3.6);
-
         tm3.set(5,1,100)
         expect(tm3.at(5, 1)).toBeCloseTo(100);
     });

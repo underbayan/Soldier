@@ -1,8 +1,10 @@
 /* @flow */
 'use strict'
 import * as cm from './common'
+import type {ProcessMode,} from './common'
 export function downsampling_convolution_periodization(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, step: number, fstep: number, output: Array<number>) {
-    var i = filterLength / 2, o = 0;
+    var halfFilterLength = Math.floor(filterLength / 2)
+    var i = halfFilterLength, o = 0;
     var padding = (step - (inputLength % step)) % step;
     output = !!output ? output : []
     for (; i < filterLength && i < inputLength; i += step, ++o) {
@@ -29,7 +31,7 @@ export function downsampling_convolution_periodization(input: Array<number>, inp
         output[o] = sum;
     }
 
-    for (; i < filterLength && i < inputLength + filterLength / 2; i += step, ++o) {
+    for (; i < filterLength && i < inputLength + halfFilterLength; i += step, ++o) {
         var sum = 0;
         var j = 0;
         var k_start = 0
@@ -57,7 +59,7 @@ export function downsampling_convolution_periodization(input: Array<number>, inp
         output[o] = sum;
     }
 
-    for (; i < inputLength + filterLength / 2; i += step, ++o) {
+    for (; i < inputLength + halfFilterLength; i += step, ++o) {
         var sum = 0;
         var j = 0;
         while (i - j >= inputLength) {
@@ -78,7 +80,7 @@ export function downsampling_convolution_periodization(input: Array<number>, inp
 }
 
 
-export function downsampling_convolution(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, step: number, mode: string, output: Array<number>) {
+export function downsampling_convolution(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, step: number, mode: ProcessMode, output: Array<number>) {
     var i = step - 1, o = 0;
     output = !!output ? output : new Array(cm.dwt_buffer_length(inputLength, filterLength, mode))
     if (mode == 'MODE_PERIODIZATION') {
@@ -135,6 +137,7 @@ export function downsampling_convolution(input: Array<number>, inputLength: numb
                 break;
         }
         output[o] = sum;
+
     }
 
     // center (if input equal or wider than filter:inputLength >=filterLength)
@@ -305,6 +308,7 @@ export function upsampling_convolution_full(input: Array<number>, inputLength: n
      * for idwt.
      */
     // If check omitted, this export function would be a no-op forfilterLength<2
+    var halfFilterLength = Math.floor(filterLength / 2)
     var i = 0, o = 0;
     output = !!output ? output : []
 
@@ -313,7 +317,7 @@ export function upsampling_convolution_full(input: Array<number>, inputLength: n
     if (filterLength % 2)
         return -3;
 
-    for (; i < inputLength && i < filterLength / 2; ++i, o += 2) {
+    for (; i < inputLength && i < halfFilterLength; ++i, o += 2) {
 
         for (var j = 0; j <= i; ++j) {
             output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
@@ -322,13 +326,13 @@ export function upsampling_convolution_full(input: Array<number>, inputLength: n
     }
     for (; i < inputLength; ++i, o += 2) {
 
-        for (var j = 0; j < filterLength / 2; ++j) {
+        for (var j = 0; j < halfFilterLength; ++j) {
             output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
     }
 
-    for (; i < filterLength / 2; ++i, o += 2) {
+    for (; i < halfFilterLength; ++i, o += 2) {
 
         for (var j = i - (inputLength - 1); j <= i; ++j) {
             output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
@@ -336,8 +340,8 @@ export function upsampling_convolution_full(input: Array<number>, inputLength: n
         }
     }
 
-    for (; i < inputLength + filterLength / 2; ++i, o += 2) {
-        for (var j = i - (inputLength - 1); j < filterLength / 2; ++j) {
+    for (; i < inputLength + halfFilterLength; ++i, o += 2) {
+        for (var j = i - (inputLength - 1); j < halfFilterLength; ++j) {
             output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
         }
@@ -348,17 +352,18 @@ export function upsampling_convolution_full(input: Array<number>, inputLength: n
 
 export function upsampling_convolution_valid_sf_periodization(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, output: Array<number>) {
     // TODO? Allow for non-2 step
+    var halfFilterLength = Math.floor(filterLength / 2)
 
-    var start = filterLength / 4;
+    var start = Math.floor(filterLength / 4);
     var i = start;
-    var end = inputLength + start - (((filterLength / 2) % 2) ? 0 : 1);
+    var end = inputLength + start - (((halfFilterLength) % 2) ? 0 : 1);
     var o = 0;
     output = !!output ? output : []
 
     if (filterLength % 2) return -3;
     /*filterLengthilter must have even-length. */
 
-    if ((filterLength / 2) % 2 == 0) {
+    if ((halfFilterLength) % 2 == 0) {
         // Shift output one element right. This is necessary for perfect reconstruction.
 
         // i =inputLength-1; even element goes to output[O-1], odd element goes to output[0]
@@ -366,17 +371,17 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
         while (j <= start - 1) {
             var k;
             for (var k = 0; k < inputLength && j <= start - 1; ++k, ++j) {
-                output[2 * inputLength - 1] += filter[2 * (start - 1 - j)] * input[k];
-                output[0] += filter[2 * (start - 1 - j) + 1] * input[k];
+                output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * (start - 1 - j)] * input[k];
+                output[0] = (output[0] || 0) + filter[2 * (start - 1 - j) + 1] * input[k];
             }
         }
-        for (; j <= inputLength + start - 1 && j < filterLength / 2; ++j) {
-            output[2 * inputLength - 1] += filter[2 * j] * input[inputLength + start - 1 - j];
-            output[0] += filter[2 * j + 1] * input[inputLength + start - 1 - j];
+        for (; j <= inputLength + start - 1 && j < halfFilterLength; ++j) {
+            output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * j] * input[inputLength + start - 1 - j];
+            output[0] = (output[0] || 0) + filter[2 * j + 1] * input[inputLength + start - 1 - j];
         }
-        while (j < filterLength / 2) {
+        while (j < halfFilterLength) {
             var k;
-            for (var k = 0; k < inputLength && j < filterLength / 2; ++k, ++j) {
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
                 output[2 * inputLength - 1] += filter[2 * j] * input[inputLength - 1 - k];
                 output[0] += filter[2 * j + 1] * input[inputLength - 1 - k];
             }
@@ -385,15 +390,15 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
         o += 1;
     }
 
-    for (; i < filterLength / 2 && i < inputLength; ++i, o += 2) {
+    for (; i < halfFilterLength && i < inputLength; ++i, o += 2) {
         var j = 0;
         for (; j <= i; ++j) {
             output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
-        while (j < filterLength / 2) {
+        while (j < halfFilterLength) {
             var k;
-            for (var k = 0; k < inputLength && j < filterLength / 2; ++k, ++j) {
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
                 output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
                 output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
             }
@@ -402,13 +407,13 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
 
     for (; i < inputLength; ++i, o += 2) {
 
-        for (var j = 0; j < filterLength / 2; ++j) {
+        for (var j = 0; j < halfFilterLength; ++j) {
             output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
     }
 
-    for (; i < filterLength / 2 && i < end; ++i, o += 2) {
+    for (; i < halfFilterLength && i < end; ++i, o += 2) {
         var j = 0;
         while (i - j >= inputLength) {
             var k;
@@ -417,13 +422,13 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
                 output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
             }
         }
-        for (; j <= i && j < filterLength / 2; ++j) {
+        for (; j <= i && j < halfFilterLength; ++j) {
             output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
-        while (j < filterLength / 2) {
+        while (j < halfFilterLength) {
             var k;
-            for (var k = 0; k < inputLength && j < filterLength / 2; ++k, ++j) {
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
                 output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
                 output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
             }
@@ -439,7 +444,7 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
                 output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
             }
         }
-        for (; j <= i && j < filterLength / 2; ++j) {
+        for (; j <= i && j < halfFilterLength; ++j) {
             output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
             output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
         }
@@ -459,19 +464,20 @@ export function upsampling_convolution_valid_sf_periodization(input: Array<numbe
 
 export function upsampling_convolution_valid_sf(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, mode: stirng, output: Array<number>) {
     // TODO: Allow non-2 step?
+    var halfFilterLength = Math.floor(filterLength / 2)
     output = !!output ? output : []
     if (mode == 'MODE_PERIODIZATION')
         upsampling_convolution_valid_sf_periodization(input, inputLength, filter, filterLength, output, O);
-    if ((filterLength % 2) || (inputLength < filterLength / 2))
+    if ((filterLength % 2) || (inputLength < halfFilterLength))
         return -1;
     // Perform only stage 2 - all elements in the filter overlap an input element.
     {
         var o, i;
-        for (o = 0, i = filterLength / 2 - 1; i < inputLength; ++i, o += 2) {
+        for (o = 0, i = halfFilterLength - 1; i < inputLength; ++i, o += 2) {
             var sum_even = 0;
             var sum_odd = 0;
 
-            for (var j = 0; j < filterLength / 2; ++j) {
+            for (var j = 0; j < halfFilterLength; ++j) {
                 sum_even += filter[j * 2] * input[i - j];
                 sum_odd += filter[j * 2 + 1] * input[i - j];
             }
