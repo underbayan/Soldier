@@ -134,6 +134,18 @@ export function idwt_buffer_length(coeffs_len: number, filterLength: number, mod
             return 2 * coeffs_len - filterLength + 2
     }
 }
+export function wavelet_max_length(name:WaveletName,inputLength){
+    switch(name){
+        case 'DB':
+            return 76
+        case'sym':
+            return 20
+        case 'coif':
+            return 17
+        case 'bior':0
+    }
+
+}
 export var ErrorConsole = function (e) {
     throw e
 }

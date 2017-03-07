@@ -1,7 +1,8 @@
 /* @flow */
 'use strict'
 import * as cm from './common'
-import type {ProcessMode,} from './common'
+import type {ProcessMode, ErrorConsole} from './common'
+import range from 'lodash/range'
 export function downsampling_convolution_periodization(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, step: number, fstep: number, output: Array<number>) {
     var halfFilterLength = Math.floor(filterLength / 2)
     var i = halfFilterLength, o = 0;
@@ -80,11 +81,169 @@ export function downsampling_convolution_periodization(input: Array<number>, inp
 }
 
 
+export function convolution(input: Array<number>, filter: Array<number>, output: Array<number>, step = 1): array {
+    var sum, i, j, o, outputLength, filterLength, minLength
+    filterLength = filter.length
+    var halfFilterLength = Math.floor(filter.length / 2)
+    outputLength = Math.floor((input.length + filterLength) / step)
+    output = output || new Array(outputLength)
+    for (i = step - 1, o = 0; i < outputLength * step; o++, i += step) {
+        sum = 0
+        minLength = Math.min(i, filterLength)
+        for (j = 0; j < minLength; j++) {
+            sum += (input[i + j] || 0) * (filter[filterLength - j - 1])
+        }
+        output[o] = sum
+    }
+    return output
+}
+export function down_convolution(input: Array<number>, filter: Array<number>, output: Array<number>) {
+    return convolution(input, filter, output, 2)
+}
+export function up_convolution(input: Array<number>, filter: Array<number>, output: Array<number>) {
+    var halfFilterLength = Math.floor(filter.length / 2)
+    var outputLength = input.length * 2
+    var inputLength = input.length
+    var filterLength= filter.length
+
+    var start = Math.floor(filterLength / 4);
+    var i = start;
+    var end = inputLength + start - (((halfFilterLength) % 2) ? 0 : 1);
+    var o = 0;
+    output = !!output ? output : []
+
+    if (filterLength % 2) return -3;
+    /*filterLengthilter must have even-length. */
+
+    if ((halfFilterLength) % 2 == 0) {
+        // Shift output one element right. This is necessary for perfect reconstruction.
+
+        // i =inputLength-1; even element goes to output[O-1], odd element goes to output[0]
+        var j = 0;
+        while (j <= start - 1) {
+            var k;
+            for (var k = 0; k < inputLength && j <= start - 1; ++k, ++j) {
+                output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * (start - 1 - j)] * input[k];
+                output[0] = (output[0] || 0) + filter[2 * (start - 1 - j) + 1] * input[k];
+            }
+        }
+        for (; j <= inputLength + start - 1 && j < halfFilterLength; ++j) {
+            output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * j] * input[inputLength + start - 1 - j];
+            output[0] = (output[0] || 0) + filter[2 * j + 1] * input[inputLength + start - 1 - j];
+        }
+        while (j < halfFilterLength) {
+            var k;
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
+                output[2 * inputLength - 1] += filter[2 * j] * input[inputLength - 1 - k];
+                output[0] += filter[2 * j + 1] * input[inputLength - 1 - k];
+            }
+        }
+
+        o += 1;
+    }
+
+    for (; i < halfFilterLength && i < inputLength; ++i, o += 2) {
+        var j = 0;
+        for (; j <= i; ++j) {
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
+        }
+        while (j < halfFilterLength) {
+            var k;
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
+                output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
+            }
+        }
+    }
+
+    for (; i < inputLength; ++i, o += 2) {
+
+        for (var j = 0; j < halfFilterLength; ++j) {
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
+        }
+    }
+
+    for (; i < halfFilterLength && i < end; ++i, o += 2) {
+        var j = 0;
+        while (i - j >= inputLength) {
+            var k;
+            for (var k = 0; k < inputLength && i - j >= inputLength; ++k, ++j) {
+                output[o] = (output[o] || 0) + filter[2 * (i - inputLength - j)] * input[k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
+            }
+        }
+        for (; j <= i && j < halfFilterLength; ++j) {
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
+        }
+        while (j < halfFilterLength) {
+            var k;
+            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
+                output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
+            }
+        }
+    }
+
+    for (; i < end; ++i, o += 2) {
+        var j = 0;
+        while (i - j >= inputLength) {
+            var k;
+            for (var k = 0; k < inputLength && i - j >= inputLength; ++k, ++j) {
+                output[o] = (output[o] || 0) + filter[2 * (i - inputLength - j)] * input[k];
+                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
+            }
+        }
+        for (; j <= i && j < halfFilterLength; ++j) {
+            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
+            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
+        }
+    }
+    return output
+}
+export function extend(mode: ProcessMode, input: Array<number>, filter: Array<number>) {
+    var filterLength = filter.length
+    var inputLength = input.length
+    var addingLength = Math.floor(filterLength / 2)
+    var result
+    if (inputLength < addingLength - 1) {
+        ErrorConsole("Error input")
+    }
+    switch (mode) {
+        case 'MODE_SYMMETRIC':
+            result = [].concat(input.slice(0, addingLength).reverse(), input, input.slice(-addingLength, inputLength).reverse())
+            break;
+        case 'MODE_REFLECT':
+            result = [].concat(input.slice(1, addingLength + 1).reverse(), input, input.slice(-addingLength - 1, inputLength - 1).reverse())
+            break;
+        case 'MODE_CONSTANT_EDGE':
+            result = [].concat(new Array(addingLength).fill(input[0]), input, new Array(addingLength).fill(input[inputLength - 1]))
+            break;
+        case 'MODE_SMOOTH': {
+            var head = range(input[0] - (input[1] - input[0]) * addingLength, input[0], input[1] - input[0])
+            var tail = range(input[inputLength - 1] + input[inputLength - 1] - input[inputLength - 2], input[inputLength - 1] + (input[inputLength - 1] - input[inputLength - 2]) * (addingLength + 1), input[inputLength - 1] - input[inputLength - 2])
+            result = [].concat(head, input, tail)
+            break;
+        }
+        case 'MODE_PERIODIC':
+            result = [].concat(input.slice(0, addingLength), input, input.slice(-addingLength, inputLength))
+            break;
+        case 'MODE_ZEROPAD':
+            result = [].concat(new Array(addingLength).fill(0), input, new Array(addingLength).fill(0))
+            break;
+        default:
+            result = [].concat(new Array(addingLength).fill(0), input, new Array(addingLength).fill(0))
+            break;
+    }
+    return result
+}
 export function downsampling_convolution(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, step: number, mode: ProcessMode, output: Array<number>) {
     var i = step - 1, o = 0;
     output = !!output ? output : new Array(cm.dwt_buffer_length(inputLength, filterLength, mode))
     if (mode == 'MODE_PERIODIZATION') {
-        downsampling_convolution_periodization(input, inputLength, filter, filterLength, output, step, 1);
+        downsampling_convolution_periodization(input, inputLength, filter, filterLength, step, 1, output);
     }
     if (mode == 'MODE_SMOOTH' && inputLength < 2)
         mode = 'MODE_CONSTANT_EDGE';
@@ -294,8 +453,11 @@ export function downsampling_convolution(input: Array<number>, inputLength: numb
         }
         for (; j < filterLength; ++j)
             sum += filter[j] * input[i - j];
+
         output[o] = sum;
     }
+
+
     return output;
 }
 

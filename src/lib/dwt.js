@@ -9,6 +9,7 @@ import type {
     DiscreteTransformType
 } from './common'
 import {discrete_wavelet, continous_wavelet} from './wavelets'
+import Matrix2 from './Matrix2'
 import * as cm from './common'
 import * as cv from './convolution'
 
@@ -45,7 +46,7 @@ function dec_a(input: Array<number>, inputLength: number, wavelet: DiscreteWavel
 function dec_d(input: Array<number>, inputLength: number, wavelet: DiscreteWavelet, dwt_mode: ProcessMode, output: Array<number>, outputLength: number) {
     return cv.downsampling_convolution(input, inputLength, wavelet.dec_hi, wavelet.dec_len, 2, dwt_mode, output)
 }
-function downcoef_axis(input: Array<number>, input_info: object, wavelet: DiscreteWavelet, axis: number, level: number, coef: Coefficient, dwt_mode: ProcessMode, discreteType: DiscreteTransformType) {
+function downcoef_axis(input: Matrix2, input_info: object, wavelet: DiscreteWavelet, axis: number, level: number, coef: Coefficient, dwt_mode: ProcessMode, discreteType: DiscreteTransformType) {
     if (!input_info.ndim > 0) {
         throw 'Wrong dim of input option'
     }
