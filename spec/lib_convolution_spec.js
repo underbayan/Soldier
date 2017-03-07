@@ -52,13 +52,14 @@ describe('Lib convolution function', function () {
     })
     it('downsampling_convolution_periodization', function () {
         var wavelet = wv.discrete_wavelet('DB', 16)
-        var RfilterH = wavelet.dec_hi
+        var RfilterH = <wavelet className="dec_hi"></wavelet>
         var RfilterL = wavelet.dec_lo
         var CfilterH = wavelet.rec_hi
         var CfilterL = wavelet.rec_lo
         var output = new Array()
         var H = cv.downsampling_convolution_periodization(input, input.length, RfilterH, RfilterH.length, 2, 1)
         var L = cv.downsampling_convolution_periodization(input, input.length, RfilterL, RfilterL.length, 2, 1)
+        console.log(H.length,L.length,input.length,"-===================")
         cv.upsampling_convolution_valid_sf_periodization(H, H.length, CfilterH, CfilterH.length, output)
         cv.upsampling_convolution_valid_sf_periodization(L, L.length, CfilterL, CfilterL.length, output)
         input.map(function (o, i) {
