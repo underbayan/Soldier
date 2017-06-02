@@ -1,1 +1,0 @@
-import * as cv from '../lib/convolution'

@@ -84,13 +84,12 @@ export function downsampling_convolution_periodization(input: Array<number>, inp
 export function convolution(input: Array<number>, filter: Array<number>, output: Array<number>, step = 1): array {
     var sum, i, j, o, outputLength, filterLength, minLength
     filterLength = filter.length
-    var halfFilterLength = Math.floor(filter.length / 2)
+    var halfFilterLength = Math.floor(filterLength / 2)
     outputLength = Math.floor((input.length + filterLength) / step)
     output = output || new Array(outputLength)
-    for (i = step - 1, o = 0; i < outputLength * step; o++, i += step) {
+    for (i = 0, o = 0; o < outputLength; o++, i += step) {
         sum = 0
-        minLength = Math.min(i, filterLength)
-        for (j = 0; j < minLength; j++) {
+        for (j = 0; j < filterLength; j++) {
             sum += (input[i + j] || 0) * (filter[filterLength - j - 1])
         }
         output[o] = sum
@@ -104,102 +103,19 @@ export function up_convolution(input: Array<number>, filter: Array<number>, outp
     var halfFilterLength = Math.floor(filter.length / 2)
     var outputLength = input.length * 2
     var inputLength = input.length
-    var filterLength= filter.length
 
-    var start = Math.floor(filterLength / 4);
-    var i = start;
-    var end = inputLength + start - (((halfFilterLength) % 2) ? 0 : 1);
-    var o = 0;
-    output = !!output ? output : []
+    output = output || new Array(outputLength)
+    var o = 0, i = 0
 
-    if (filterLength % 2) return -3;
-    /*filterLengthilter must have even-length. */
-
-    if ((halfFilterLength) % 2 == 0) {
-        // Shift output one element right. This is necessary for perfect reconstruction.
-
-        // i =inputLength-1; even element goes to output[O-1], odd element goes to output[0]
-        var j = 0;
-        while (j <= start - 1) {
-            var k;
-            for (var k = 0; k < inputLength && j <= start - 1; ++k, ++j) {
-                output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * (start - 1 - j)] * input[k];
-                output[0] = (output[0] || 0) + filter[2 * (start - 1 - j) + 1] * input[k];
-            }
-        }
-        for (; j <= inputLength + start - 1 && j < halfFilterLength; ++j) {
-            output[2 * inputLength - 1] = (output[2 * inputLength - 1] || 0) + filter[2 * j] * input[inputLength + start - 1 - j];
-            output[0] = (output[0] || 0) + filter[2 * j + 1] * input[inputLength + start - 1 - j];
-        }
-        while (j < halfFilterLength) {
-            var k;
-            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
-                output[2 * inputLength - 1] += filter[2 * j] * input[inputLength - 1 - k];
-                output[0] += filter[2 * j + 1] * input[inputLength - 1 - k];
-            }
-        }
-
-        o += 1;
-    }
-
-    for (; i < halfFilterLength && i < inputLength; ++i, o += 2) {
-        var j = 0;
-        for (; j <= i; ++j) {
-            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
-            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
-        }
-        while (j < halfFilterLength) {
-            var k;
-            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
-                output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
-                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
-            }
-        }
-    }
-
-    for (; i < inputLength; ++i, o += 2) {
-
+    for (; o < outputLength; ++i, o += 2) {
+        var sum_even = 0;
+        var sum_odd = 0;
         for (var j = 0; j < halfFilterLength; ++j) {
-            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
-            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
+            sum_even += filter[j * 2] * (input[i - j] || 0);
+            sum_odd += filter[j * 2 + 1] * (input[i - j] || 0);
         }
-    }
-
-    for (; i < halfFilterLength && i < end; ++i, o += 2) {
-        var j = 0;
-        while (i - j >= inputLength) {
-            var k;
-            for (var k = 0; k < inputLength && i - j >= inputLength; ++k, ++j) {
-                output[o] = (output[o] || 0) + filter[2 * (i - inputLength - j)] * input[k];
-                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
-            }
-        }
-        for (; j <= i && j < halfFilterLength; ++j) {
-            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
-            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
-        }
-        while (j < halfFilterLength) {
-            var k;
-            for (var k = 0; k < inputLength && j < halfFilterLength; ++k, ++j) {
-                output[o] = (output[o] || 0) + filter[2 * j] * input[inputLength - 1 - k];
-                output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[inputLength - 1 - k];
-            }
-        }
-    }
-
-    for (; i < end; ++i, o += 2) {
-        var j = 0;
-        while (i - j >= inputLength) {
-            var k;
-            for (var k = 0; k < inputLength && i - j >= inputLength; ++k, ++j) {
-                output[o] = (output[o] || 0) + filter[2 * (i - inputLength - j)] * input[k];
-                output[o + 1] = (output[o + 1] || 0) + filter[2 * (i - inputLength - j) + 1] * input[k];
-            }
-        }
-        for (; j <= i && j < halfFilterLength; ++j) {
-            output[o] = (output[o] || 0) + filter[2 * j] * input[i - j];
-            output[o + 1] = (output[o + 1] || 0) + filter[2 * j + 1] * input[i - j];
-        }
+        output[o] = (output[o] || 0) + sum_even;
+        output[o + 1] = (output[o + 1] || 0) + sum_odd;
     }
     return output
 }

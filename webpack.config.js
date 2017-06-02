@@ -38,7 +38,6 @@ module.exports = function (env) {
     }
 
     entry = {
-        index: ['./src/pages/index'],
     }
     htmlPlugins = htmlCreator(['index'])
     var CommonPlugins = [
