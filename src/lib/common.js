@@ -1,30 +1,7 @@
 /* @flow */
 type WaveletName='HAAR'|'RBIO'|'DB'|'SYM'|'COIF'|'BIOR'|'DMEY'|'GAUS'|'MEXH'|'MORL'|'CGAU'|'SHAN'|'FBSP'|'CMOR'
 type Coefficient= 0 | 1 //COEF_APPROX = 0, COEF_DETAIL = 1
-type ProcessMode=
-    /* default, signal extended with zeros */
-    'MODE_ZEROPAD'|
-        /* signal extended symmetrically (mirror)
-         * For extensions greater than signal length,
-         * mirror back and forth:
-         * 2 3 3 2 1 | 1 2 3 | 3 2 1 1 2
-         */
-        'MODE_SYMMETRIC'|
-        /* signal extended with the border value */
-        'MODE_CONSTANT_EDGE'|
-        /* linear extrapolation (first derivative) */
-        'MODE_SMOOTH'|
-        /* signal is treated as being periodic */
-        'MODE_PERIODIC'|
-        /* signal is treated as being periodic, minimal output length */
-        'MODE_PERIODIZATION'|
-        /* signal extended symmetrically (reflect)
-         * For extensions greater than signal length,
-         * reflect back and forth without repeating edge values:
-         * 1 2 3 2 | 1 2 3 | 2 1 2 3
-         */
-        'MODE_REFLECT'|
-        'MODE_MAX'
+
 type DiscreteTransformType= 0 | 1 // 0 is DWT_TRANSFORM , 1 is SWT_TRANSFORM
 type
     BaseWavelet = {
@@ -144,7 +121,6 @@ export function wavelet_max_length(name:WaveletName,inputLength){
             return 17
         case 'bior':0
     }
-
 }
 export var ErrorConsole = function (e) {
     throw e

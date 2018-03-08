@@ -8,7 +8,7 @@ import type {
     ProcessMode,
     DiscreteTransformType
 } from './common'
-import {discrete_wavelet, continous_wavelet} from './wavelets'
+import {discrete_wavelet, continous_wavelet} from './wavelets/discrete_wavelet'
 import Matrix2 from './Matrix2'
 import * as cm from './common'
 import * as cv from './convolution'

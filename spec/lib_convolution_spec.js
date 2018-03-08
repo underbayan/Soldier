@@ -1,13 +1,15 @@
 import '../src/lib/prefix'
 import * as cv from '../src/lib/convolution'
 import range from 'lodash/range'
-import * as wv from '../src/lib/wavelets'
+import * as wv from '../src/lib/wavelets/discrete_wavelet'
 
 import {gaus, fbsp, cmor, shan, cgau, morl, mexh} from '../src/lib/cwt'
 
 describe('Lib convolution function', function () {
     var xaix = range(-20, 20.5, .5)
     var input = xaix.map((o)=>(5 * Math.sin(o) + Math.random()))
+
+
     it('convolution',function(){
         var wavelet = wv.discrete_wavelet('DB', 8)
         var output = new Array()
@@ -17,18 +19,10 @@ describe('Lib convolution function', function () {
         var CfilterL = wavelet.rec_lo
         var input=new Array(100).fill(10);
         var tmp=cv.convolution(input,RfilterH)
-        console.log(cv.convolution([0,0,0,0,0,0,0].concat(RfilterH),RfilterH))
+        console.log(tmp)
+        console.log('\n convolution with step =1 :\n',cv.convolution([0,0,0,0,0,0,0].concat(RfilterH),RfilterH))
+    })
 
-    })
-    it(' extend', function () {
-        var localInput = range(-10, 10, 1)
-        expect(cv.extend('MODE_SYMMETRIC', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(-7)
-        expect(cv.extend('MODE_REFLECT', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(-6)
-        expect(cv.extend('MODE_CONSTANT_EDGE', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(-10)
-        expect(cv.extend('MODE_SMOOTH', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(-14)
-        expect(cv.extend('MODE_PERIODIC', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(-10)
-        expect(cv.extend('MODE_ZEROPAD', localInput, [1, 1, 1, 1, 1, 1, 1, 1])[0]).toBeCloseTo(0)
-    })
     it('up_down_convolution', function () {
         var wavelet = wv.discrete_wavelet('DB', 8)
         var output = new Array()
@@ -36,7 +30,7 @@ describe('Lib convolution function', function () {
         var RfilterL = wavelet.dec_lo
         var CfilterH = wavelet.rec_hi
         var CfilterL = wavelet.rec_lo
-        var tmpInput=cv.extend('MODE_ZEROPAD',range(0, 100, 1),RfilterH)  //new Array(100).fill(10)
+        // var tmpInput=cv.extend('MODE_ZEROPAD',range(0, 100, 1),RfilterH)  //new Array(100).fill(10)
         var H = cv.down_convolution(tmpInput, RfilterH)
         var L = cv.down_convolution(tmpInput, RfilterL)
         cv.up_convolution(L, CfilterL, output)
