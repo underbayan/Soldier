@@ -4,7 +4,6 @@ import * as cm from './common'
 import type {ProcessMode, ErrorConsole} from './common'
 
 /**
- *
  * @param input
  * @param filter
  * @param step
@@ -90,6 +89,13 @@ export function downsampling_convolution_periodization(input: Array<number>, fil
   }
   return output;
 }
+/**
+ *
+ * @param input
+ * @param filter
+ * @param output
+ * @return {Array.<number>}
+ */
 export function upsampling_convolution_periodization(input: Array<number>, filter: Array<number>, output: Array<number>) {
   // TODO? Allow for non-2 step
   var inputLength = input.length
@@ -102,7 +108,6 @@ export function upsampling_convolution_periodization(input: Array<number>, filte
   output = output ? output : []
   if (filterLength % 2) return -3;
   /*filterLengthilter must have even-length. */
-
   if (halfFilterLength % 2 === 0) {
     // Shift output one element right. This is necessary for perfect reconstruction.
     // i =inputLength-1; even element goes to output[O-1], odd element goes to output[0]
@@ -188,97 +193,36 @@ export function upsampling_convolution_periodization(input: Array<number>, filte
   return output;
 }
 
-export function convolution(input: Array<number>, filter: Array<number>, output: Array<number>, step = 1): array {
-  var sum, i, j, o, outputLength, filterLength = filter.length
-  outputLength = Math.floor((input.length + filterLength) / step)
-  output = output || new Array(outputLength)
-  for (i = 0, o = 0; o < outputLength; o++, i += step) {
-    sum = 0
-    for (j = 0; j < filterLength; j++) {
-      sum += (input[i + j] || 0) * (filter[filterLength - j - 1])
-    }
-    output[o] = sum
-  }
-  return output
-}
-
-export function down_convolution(input: Array<number>, filter: Array<number>, output: Array<number>) {
-  return convolution(input, filter, output, 2)
-}
-export function up_convolution(input: Array<number>, filter: Array<number>, output: Array<number>) {
-  var halfFilterLength = Math.floor(filter.length / 2)
-  var outputLength = input.length * 2
-  var inputLength = input.length
-
-  output = output || new Array(outputLength)
-  var o = 0, i = 0
-
-  for (; o < outputLength; ++i, o += 2) {
-    var sum_even = 0;
-    var sum_odd = 0;
-    for (var j = 0; j < halfFilterLength; ++j) {
-      sum_even += filter[j * 2] * (input[i - j] || 0);
-      sum_odd += filter[j * 2 + 1] * (input[i - j] || 0);
-    }
-    output[o] = (output[o] || 0) + sum_even;
-    output[o + 1] = (output[o + 1] || 0) + sum_odd;
-  }
-  return output
-}
-export function extend(mode: ProcessMode, input: Array<number>, filter: Array<number>) {
+/**
+ * @param input
+ * @param filter
+ * @param step
+ * @param mode
+ * @param output
+ * @return {Array.<number>}
+ */
+export function downsampling_convolution(input: Array<number>, filter: Array<number>,  mode: ProcessMode, step: number = 2, output: Array<number>) {
   var filterLength = filter.length
   var inputLength = input.length
-  var addingLength = Math.floor(filterLength / 2)
-  var result
-  if (inputLength < addingLength - 1) {
-    ErrorConsole("Error input")
-  }
-  switch (mode) {
-    case 'MODE_SYMMETRIC':
-      result = [].concat(input.slice(0, addingLength).reverse(), input, input.slice(-addingLength, inputLength).reverse())
-      break;
-    case 'MODE_REFLECT':
-      result = [].concat(input.slice(1, addingLength + 1).reverse(), input, input.slice(-addingLength - 1, inputLength - 1).reverse())
-      break;
-    case 'MODE_CONSTANT_EDGE':
-      result = [].concat(new Array(addingLength).fill(input[0]), input, new Array(addingLength).fill(input[inputLength - 1]))
-      break;
-    case 'MODE_SMOOTH': {
-      var head = range(input[0] - (input[1] - input[0]) * addingLength, input[0], input[1] - input[0])
-      var tail = range(input[inputLength - 1] + input[inputLength - 1] - input[inputLength - 2], input[inputLength - 1] + (input[inputLength - 1] - input[inputLength - 2]) * (addingLength + 1), input[inputLength - 1] - input[inputLength - 2])
-      result = [].concat(head, input, tail)
-      break;
-    }
-    case 'MODE_PERIODIC':
-      result = [].concat(input.slice(0, addingLength), input, input.slice(-addingLength, inputLength))
-      break;
-    case 'MODE_ZEROPAD':
-      result = [].concat(new Array(addingLength).fill(0), input, new Array(addingLength).fill(0))
-      break;
-    default:
-      result = [].concat(new Array(addingLength).fill(0), input, new Array(addingLength).fill(0))
-      break;
-  }
-  return result
-}
-export function downsampling_convolution(input: Array<number>, filter: Array<number>, step: number, mode: ProcessMode, output: Array<number>) {
-  var inputLength = input.length
-  var filterLength = filter.length
   var i = step - 1, o = 0;
-  if (mode == 'MODE_PERIODIZATION') {
-    return downsampling_convolution_periodization(input, inputLength, filter, filterLength, step, 1, output);
-  }
   output = output ? output : new Array(cm.dwt_buffer_length(inputLength, filterLength, mode))
+  if (mode == 'MODE_PERIODIZATION') {
+    downsampling_convolution_periodization(input, inputLength, filter, filterLength, step, 1, output);
+  }
   if (mode == 'MODE_SMOOTH' && inputLength < 2)
     mode = 'MODE_CONSTANT_EDGE';
+
   // left boundary overhang
   for (; i < filterLength && i < inputLength; i += step, ++o) {
     var sum = 0;
+
     for (var j = 0; j <= i; ++j)
       sum += filter[j] * input[i - j];
+
     switch (mode) {
       case 'MODE_SYMMETRIC':
         while (j < filterLength) {
+          var k;
           for (var k = 0; k < inputLength && j < filterLength; ++j, ++k)
             sum += filter[j] * input[k];
           for (var k = 0; k < inputLength && j < filterLength; ++k, ++j)
@@ -287,6 +231,7 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         break;
       case 'MODE_REFLECT':
         while (j < filterLength) {
+          var k;
           for (var k = 1; k < inputLength && j < filterLength; ++j, ++k)
             sum += filter[j] * input[k];
           for (var k = 1; k < inputLength && j < filterLength; ++k, ++j)
@@ -297,16 +242,17 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         for (; j < filterLength; ++j)
           sum += filter[j] * input[0];
         break;
-      case 'MODE_SMOOTH':
-        for (var k = 1; j < filterLength; ++j, ++k) {
+      case 'MODE_SMOOTH': {
+        var k;
+        for (var k = 1; j < filterLength; ++j, ++k)
           sum += filter[j] * (input[0] + k * (input[0] - input[1]));
-        }
         break;
+      }
       case 'MODE_PERIODIC':
         while (j < filterLength) {
-          for (var k = 0; k < inputLength && j < filterLength; ++k, ++j) {
+          var k;
+          for (var k = 0; k < inputLength && j < filterLength; ++k, ++j)
             sum += filter[j] * input[inputLength - 1 - k];
-          }
         }
         break;
       case 'MODE_ZEROPAD':
@@ -315,10 +261,10 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
     }
     output[o] = sum;
   }
-
   // center (if input equal or wider than filter:inputLength >=filterLength)
   for (; i < inputLength; i += step, ++o) {
     var sum = 0;
+
     for (var j = 0; j < filterLength; ++j)
       sum += input[i - j] * filter[j];
     output[o] = sum;
@@ -336,6 +282,7 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
          * data. This gives a known first input element to process (N-1)
          */
         while (i - j >= inputLength) {
+          var k;
           for (var k = 0; k < inputLength && i - j >= inputLength; ++j, ++k)
             sum += filter[i - inputLength - j] * input[inputLength - 1 - k];
           for (var k = 0; k < inputLength && i - j >= inputLength; ++j, ++k)
@@ -344,6 +291,7 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         break;
       case 'MODE_REFLECT':
         while (i - j >= inputLength) {
+          var k;
           for (var k = 1; k < inputLength && i - j >= inputLength; ++j, ++k)
             sum += filter[i - inputLength - j] * input[inputLength - 1 - k];
           for (var k = 1; k < inputLength && i - j >= inputLength; ++j, ++k)
@@ -354,12 +302,15 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         for (; i - j >= inputLength; ++j)
           sum += filter[j] * input[inputLength - 1];
         break;
-      case 'MODE_SMOOTH':
+      case 'MODE_SMOOTH': {
+        var k;
         for (var k = i - inputLength + 1; i - j >= inputLength; ++j, --k)
           sum += filter[j] * (input[inputLength - 1] + k * (input[inputLength - 1] - input[inputLength - 2]));
         break;
+      }
       case 'MODE_PERIODIC':
         while (i - j >= inputLength) {
+          var k;
           for (var k = 0; k < inputLength && i - j >= inputLength; ++j, ++k)
             sum += filter[i - inputLength - j] * input[k];
         }
@@ -367,13 +318,16 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
       case 'MODE_ZEROPAD':
       default:
         j = i - inputLength + 1;
+        break;
     }
 
-    for (; j <= i; ++j) sum += filter[j] * input[i - j];
+    for (; j <= i; ++j)
+      sum += filter[j] * input[i - j];
 
     switch (mode) {
       case 'MODE_SYMMETRIC':
         while (j < filterLength) {
+          var k;
           for (var k = 0; k < inputLength && j < filterLength; ++j, ++k)
             sum += filter[j] * input[k];
           for (var k = 0; k < inputLength && j < filterLength; ++k, ++j)
@@ -382,6 +336,7 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         break;
       case 'MODE_REFLECT':
         while (j < filterLength) {
+          var k;
           for (var k = 1; k < inputLength && j < filterLength; ++j, ++k)
             sum += filter[j] * input[k];
           for (var k = 1; k < inputLength && j < filterLength; ++k, ++j)
@@ -392,12 +347,15 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
         for (; j < filterLength; ++j)
           sum += filter[j] * input[0];
         break;
-      case'MODE_SMOOTH':
+      case'MODE_SMOOTH': {
+        var k;
         for (var k = 1; j < filterLength; ++j, ++k)
           sum += filter[j] * (input[0] + k * (input[0] - input[1]));
         break;
+      }
       case 'MODE_PERIODIC':
         while (j < filterLength) {
+          var k;
           for (var k = 0; k < inputLength && j < filterLength; ++k, ++j)
             sum += filter[j] * input[inputLength - 1 - k];
         }
@@ -462,8 +420,16 @@ export function downsampling_convolution(input: Array<number>, filter: Array<num
   }
   return output;
 }
-
-export function upsampling_convolution(input: Array<number>, filter: Array<number>, output: Array<number>) {
+/**
+ *
+ * @param input
+ * @param filter
+ * @param mode
+ * @param step
+ * @param output
+ * @return {Array.<number>}
+ */
+export function upsampling_convolution(input: Array<number>, filter: Array<number>, mode: ProcessMode, step: number = 2, output: Array<number>) {
   /* Performs a zero-padded convolution, using each input element for two
    * consecutive filter elements. This simulates an upsampled input.
    *
@@ -472,24 +438,24 @@ export function upsampling_convolution(input: Array<number>, filter: Array<numbe
    * for idwt.
    */
   // If check omitted, this export function would be a no-op forfilterLength<2
-  var inputLength = filter.length
+  var inputLength = input.length
   var filterLength = filter.length
   var halfFilterLength = Math.floor(filterLength / 2)
   var i = 0, o = 0;
   output = output ? output : []
-
   if (filterLength < 2)
     return -1;
   if (filterLength % 2)
     return -3;
-
   for (; i < inputLength && i < halfFilterLength; ++i, o += 2) {
+
     for (var j = 0; j <= i; ++j) {
       output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
       output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
     }
   }
   for (; i < inputLength; ++i, o += 2) {
+
     for (var j = 0; j < halfFilterLength; ++j) {
       output[o] = (output[o] || 0) + filter[j * 2] * input[i - j];
       output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
@@ -510,7 +476,7 @@ export function upsampling_convolution(input: Array<number>, filter: Array<numbe
       output[o + 1] = (output[o + 1] || 0) + filter[j * 2 + 1] * input[i - j];
     }
   }
-  return output;
+  return output
 }
 
 
@@ -521,7 +487,6 @@ export function upsampling_convolution(input: Array<number>, filter: Array<numbe
  * and performing 2 convolutions.  After refactoring the PERIODIZATION mode
  * case to separate export function this looks much clearer now.
  */
-
 export function upsampling_convolution_valid_sf(input: Array<number>, inputLength: number, filter: Array<number>, filterLength: number, mode: stirng, output: Array<number>) {
   // TODO: Allow non-2 step?
   var halfFilterLength = Math.floor(filterLength / 2)
